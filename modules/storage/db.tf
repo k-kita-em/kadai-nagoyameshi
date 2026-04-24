@@ -1,0 +1,53 @@
+resource "aws_db_subnet_group" "db" {
+  name       = "${var.project_env}-db-subnet-group"
+  subnet_ids = [var.db_subnet1a, var.db_subnet1c]
+
+  tags = {
+    Name = "${var.project_env}-db-subnet-group"
+  }
+}
+
+resource "aws_security_group" "rds" {
+  name        = "${var.project_env}-rds-sg"
+  description = "Security Group for RDS"
+  vpc_id      = var.vpc_id
+
+  tags = {
+    Name = "${var.project_env}-rds-sg"
+  }
+}
+resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
+  security_group_id             = aws_security_group.rds.id
+  referenced_security_group_id  = var.ecs_security_group
+  from_port                     = 3306
+  to_port                       = 3306
+  ip_protocol                   = "tcp"
+}
+resource "aws_vpc_security_group_egress_rule" "rds_egress" {
+  security_group_id = aws_security_group.rds.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+resource "aws_db_instance" "mysql" {
+  identifier              = "${var.project_env}-mysql"
+  engine                  = "mysql"
+  engine_version          = "8.0"
+  instance_class          = "db.t3.micro"
+  allocated_storage       = 20
+
+  db_name                 = "laravel_nagoyameshi"
+  username                = var.db_username
+  password                = var.db_password
+
+  db_subnet_group_name    = aws_db_subnet_group.db.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+
+  skip_final_snapshot     = true
+  publicly_accessible     = false
+  multi_az                = true   # ← 冗長化（本番は必須）
+
+  tags = {
+    Name = "${var.project_env}-mysql"
+  }
+}
