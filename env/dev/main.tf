@@ -12,6 +12,7 @@ module "dev_vpc" {
 }
 resource "aws_secretsmanager_secret" "app_key" {
   name = "${var.project_env}-app-key"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "app_key" {
@@ -21,6 +22,7 @@ resource "aws_secretsmanager_secret_version" "app_key" {
 
 resource "aws_secretsmanager_secret" "db_password" {
   name = "${var.project_env}-db-password"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "db_password" {
