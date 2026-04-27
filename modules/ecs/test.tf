@@ -26,8 +26,8 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_env}-app-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = "256"
+  memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
 
   
@@ -36,7 +36,7 @@ container_definitions = jsonencode([
     name      = "app"
     image     = var.ecr_image_url
     essential = true
-    command   = ["sh", "-c", "php artisan storage:link --force && apache2-foreground"]
+    command   = ["sh", "-c", "php artisan migrate --force && php artisan storage:link --force && apache2-foreground"]
 
     portMappings = [{
       containerPort = 80
@@ -112,7 +112,7 @@ resource "aws_security_group" "alb_sg" {
 resource "aws_vpc_security_group_ingress_rule" "web_http" {
     security_group_id = aws_security_group.alb_sg.id
 
-    cidr_ipv4 = "124.159.178.109/32"
+    cidr_ipv4 = "0.0.0.0/0"
     from_port = 80
     ip_protocol = "tcp"
     to_port = 80
@@ -122,7 +122,7 @@ resource "aws_vpc_security_group_ingress_rule" "web_http" {
 resource "aws_vpc_security_group_ingress_rule" "web_https" {
     security_group_id = aws_security_group.alb_sg.id
 
-    cidr_ipv4 = "124.159.178.109/32"
+    cidr_ipv4 = "0.0.0.0/0"
     from_port = 443
     ip_protocol = "tcp"
     to_port = 443
@@ -184,7 +184,7 @@ resource "aws_ecs_service" "app" {
   cluster         = aws_ecs_cluster.app.id
   task_definition = aws_ecs_task_definition.app.arn
   launch_type     = "FARGATE"
-  desired_count   = 2   # 冗長化のため2つ以上が推奨
+  desired_count   = 1   # 冗長化のため2つ以上が推奨
 
   network_configuration {
     subnets         = [var.ecs_subnet1a, var.ecs_subnet1c]  # ← 複数AZ
